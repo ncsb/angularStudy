@@ -1,0 +1,13 @@
+<div class="col-md-3" ng-repeat="book in books">
+    <div class="panel panel-info ">
+        <div class="panel-heading">{{book.bookName}}</div>
+        <div class="panel-body">
+            <!--数据加载后再进行图片的请求工作-->
+            <img ng-src="{{book.bookCover}}" alt="" style="width:100%;height: 200px">
+        </div>
+        <div class="panel-footer">
+            书的价格 {{book.bookPrice | currency:'$'}}
+            <a href="#/detail/{{book.id}}" class="btn btn-success">详情页</a>
+        </div>
+    </div>
+</div>

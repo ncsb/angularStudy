@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="appModule">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <script src="server.js"></script>
+</head>
+<body>
+    <!--导航条 固定不动不切换-->
+    <div class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a href="#/" class="navbar-brand">BookStore</a>
+            </div>
+            <ul class="navbar-nav nav">
+                <li><a href="#/">首页</a></li>
+                <li><a href="#/list">图书列表</a></li>
+                <li><a href="#/add">添加图书</a></li>
+            </ul>
+        </div>
+    </div>
+    <!--切换页面放在此div中-->
+    <div ng-view class="container"></div>
+
+    <!--所有js和css都引入到主页即可，单页开发，是将不同的模板嵌入到主页 spa-->
+    <script src="node_modules/angular/angular.js"></script>
+    <script src="node_modules/angular-route/angular-route.js"></script>
+    <script src="node_modules/angular-resource/angular-resource.js"></script>
+    <script src="node_modules/jquery/dist/jquery.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
+    <script>
+        var app = angular.module('appModule',['ngResource','ngRoute']);
+        //配置路由 ,需要用到ngRoute中的服务进行配置 配置时增加大写的Provider
+        //为了不跳转页面采用hash值得方式，并且会产生历史管理
+        app.factory('Book',function ($resource) {
+            return $resource('/books/:id',null,{
+                update:{method:'put'}
+            });
+        });
+        app.config(function ($routeProvider) {
+            //1.路由的路径 2.配置好的路由 当路由切换时会将内容放置到对应的ng-view里
+            $routeProvider.when('/',{
+                templateUrl:'tmpl/home.html',
+                controller:'homeCtrl' //控制器上挂载的数据可以在模板中取出来
+            }).when('/list',{
+                templateUrl:'tmpl/list.html',
+                controller:'listCtrl'
+            }).when('/add',{
+                templateUrl:'tmpl/add.html',
+                controller:'addCtrl'
+            }).when('/detail/:id',{ // /detail/2  -> $routeParams {id:2}
+                templateUrl:'tmpl/detail.html',
+                controller:'detailCtrl'
+            }).otherwise('/');
+            //配置404路由
+        });
+        app.controller('homeCtrl',function ($scope,$sce,Book) {
+            $scope.title = $sce.trustAsHtml('<h1>快来围观，书城</h1>');
+            $('.carousel').carousel({interval:2000});
+        });
+        app.controller('listCtrl',function ($scope,Book) {
+            //写入动态数据
+            $scope.books = Book.query();
+        });
+        app.controller('addCtrl',function ($scope,Book,$location) {
+            $scope.add = function () {
+                Book.save($scope.book).$promise.then(function () {
+                    $location.path('/list');//保存成功后去list页面
+                });
+                //添加图书 post   window.location.href
+            }
+        });
+        app.controller('detailCtrl',function ($scope,$routeParams,Book,$location) {
+            //console.log($routeParams.id);//路径参数对象
+            Book.get({id:$routeParams.id}).$promise.then(function (data) {
+                $scope.book =data;
+                //clone一个完全一样的对象
+                $scope.b = JSON.parse(JSON.stringify($scope.book));
+            });
+            //删除
+            $scope.remove = function () {
+                Book.delete({id:$routeParams.id}).$promise.then(function () {
+                    $location.path('/list');
+                })
+            };
+            //控制显示和隐藏
+            $scope.flag = false;
+            //取消 控制显示和隐藏
+            $scope.change = function () {
+                $scope.flag = !$scope.flag;
+                $scope.b = JSON.parse(JSON.stringify($scope.book));
+            };
+            //修改的逻辑
+            $scope.update = function () {
+                //   传递需要改变的id   改变成什么数据
+                Book.update({id:$routeParams.id},$scope.b).$promise.then(function () {
+                    $scope.flag = false;
+                    $scope.book = $scope.b;//改完后 同步最新的数据
+                })
+            };
+        });
+    </script>
+</body>
+</html>
